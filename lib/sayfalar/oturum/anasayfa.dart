@@ -1,7 +1,9 @@
+// lib/sayfalar/ana_sayfa.dart
 import 'package:flutter/material.dart';
 import 'package:siparis_takip/sayfalar/oturum/giris.dart';
 import 'package:siparis_takip/sayfalar/oturum/rol_degistirme.dart';
 import 'package:siparis_takip/sayfalar/oturum/hesap_durum.dart';
+import 'package:siparis_takip/sayfalar/urun/kullanici_aktiviteleri_sayfasi.dart';
 import 'package:siparis_takip/sayfalar/urun/urun_olustur.dart';
 import 'package:siparis_takip/sayfalar/urun/urun_arama_sayfasi.dart';
 import 'package:siparis_takip/sayfalar/urun/qr_galeriden_okuma_sayfasi.dart';
@@ -10,7 +12,7 @@ import 'package:siparis_takip/services/token_manager.dart';
 
 class AnaSayfa extends StatelessWidget {
   final String kullaniciAdi;
-  final String role; // sadece rol kaldı
+  final String role; // "yonetici" | "personel" | "depo_gorevlisi"
 
   const AnaSayfa({super.key, required this.kullaniciAdi, required this.role});
 
@@ -23,13 +25,7 @@ class AnaSayfa extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          "Hoş Geldin, $formattedUsername",
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
+        title: Text("Hoş Geldin, $formattedUsername"),
         backgroundColor: Colors.indigo.shade600,
         actions: [
           if (role == "yonetici") ...[
@@ -48,7 +44,6 @@ class AnaSayfa extends StatelessWidget {
             tooltip: "Çıkış Yap",
             icon: const Icon(Icons.logout, color: Colors.white),
             onPressed: () async {
-              // tokenları temizle ve giriş ekranına dön
               await TokenManager.clear();
               if (context.mounted) {
                 Navigator.pushReplacement(
@@ -86,7 +81,6 @@ class AnaSayfa extends StatelessWidget {
                   child: Column(
                     children: [
                       _profilKarti(),
-
                       const SizedBox(height: 16),
 
                       // ---------- YÖNETİCİ ----------
@@ -99,6 +93,19 @@ class AnaSayfa extends StatelessWidget {
                             context,
                             MaterialPageRoute(
                               builder: (_) => const HesapDurum(),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        _buildAnaButon(
+                          context,
+                          Icons.history,
+                          "Kullanıcı Aktiviteleri",
+                          () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (_) => const KullaniciAktiviteleriSayfasi(),
                             ),
                           ),
                         ),
@@ -258,7 +265,6 @@ class AnaSayfa extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Avatar
           Container(
             width: 54,
             height: 54,
@@ -269,7 +275,6 @@ class AnaSayfa extends StatelessWidget {
             child: const Icon(Icons.person, color: Colors.indigo, size: 30),
           ),
           const SizedBox(width: 16),
-          // İsim + Rol chip’i
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

@@ -93,10 +93,34 @@ class UrunService {
     }
   }
 
-  static Future<List<Aktivite>> kullaniciAktiviteleri(int userId) async {
+  /// ✅ Kullanıcı adları (dropdown için)
+  // UrunService içinde
+
+  static Future<List<String>> getKullaniciAdlari() async {
+    final uri = Uri.parse('$_logsBaseUrl/kullanici-adlari/'); // <-- DOĞRU
+
+    final resp = await _sendWithAutoRefresh(
+      (a) => http.get(uri, headers: _bearerFrom(a)),
+    );
+
+    if (resp.statusCode == 200) {
+      final List<dynamic> data = json.decode(resp.body);
+      return List<String>.from(data);
+    } else {
+      throw Exception(
+        'Kullanıcı adları alınamadı: ${resp.statusCode}\n${resp.body}',
+      );
+    }
+  }
+
+  /// ✅ Username'e göre aktivite listesi
+  static Future<List<Aktivite>> kullaniciAktiviteleriByUsername(
+    String username,
+  ) async {
+    // /urun-durum-gecmisi/kullanici/<username>/
     final uri = Uri.parse(
-      '$_logsBaseUrl/',
-    ).replace(queryParameters: {'user': '$userId'});
+      '$_logsBaseUrl/kullanici/${Uri.encodeComponent(username)}/',
+    );
 
     final resp = await _sendWithAutoRefresh(
       (access) => http.get(uri, headers: _bearerFrom(access)),
