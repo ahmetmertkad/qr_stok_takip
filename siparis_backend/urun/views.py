@@ -6,6 +6,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import Prefetch
 
+from siparis_backend.kullanici.views import User
+
 from .permissions import AnyRole
 
 from .models import Urun, UrunDurumGecmisi
@@ -261,3 +263,25 @@ class UrunDurumGecmisiViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(yapan=self.request.user if self.request.user.is_authenticated else None)
+
+    @action(
+        detail=False,
+        methods=['get'],
+        url_path=r'kullanici/(?P<user_id>\d+)',
+        permission_classes=[permissions.IsAuthenticated]  # istersen AnyRole("yonetici")
+    )
+    def kullanici_aktiviteleri(self, request, user_id=None):
+        """Seçilen kullanıcıya ait TÜM aktiviteleri getirir (tarih filtresi yok)."""
+        if not User.objects.filter(pk=user_id).exists():
+            return Response({"detail": "Kullanıcı bulunamadı."}, status=status.HTTP_404_NOT_FOUND)
+
+        qs = (
+            UrunDurumGecmisi.objects
+            .filter(yapan_id=user_id)
+            .select_related('urun', 'yapan')
+            .order_by('-tarih')
+        )
+        ser = self.get_serializer(qs, many=True)
+        return Response(ser.data, status=status.HTTP_200_OK)
+    
+    

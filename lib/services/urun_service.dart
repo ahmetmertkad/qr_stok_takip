@@ -2,6 +2,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:siparis_takip/models/aktivite.dart';
 
 import 'package:siparis_takip/services/token_manager.dart';
 import 'package:siparis_takip/services/refresh_coordinator.dart';
@@ -13,6 +14,8 @@ class UrunService {
   // Android emulator: 10.0.2.2, iOS simulator: localhost
   static const String _baseUrl = 'http://10.0.2.2:8000/urun/urunler';
   static const String _authBase = 'http://10.0.2.2:8000/api';
+  static const String _logsBaseUrl =
+      'http://10.0.2.2:8000/urun/urun-durum-gecmisi';
   static const Duration _timeout = Duration(seconds: 20);
 
   // -------------------- ORTAK YARDIMCILAR --------------------
@@ -87,6 +90,30 @@ class UrunService {
       return List<String>.from(data['adlar'] ?? []);
     } else {
       throw Exception("Adlar alınamadı: ${resp.statusCode}\n${resp.body}");
+    }
+  }
+
+  static Future<List<Aktivite>> kullaniciAktiviteleri(int userId) async {
+    final uri = Uri.parse(
+      '$_logsBaseUrl/',
+    ).replace(queryParameters: {'user': '$userId'});
+
+    final resp = await _sendWithAutoRefresh(
+      (access) => http.get(uri, headers: _bearerFrom(access)),
+    );
+
+    if (resp.statusCode == 200) {
+      final List<dynamic> data = json.decode(resp.body);
+      return data
+          .map((e) => Aktivite.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } else if (resp.statusCode == 404) {
+      // kullanıcı yoksa boş liste döndür
+      return <Aktivite>[];
+    } else {
+      throw Exception(
+        "Aktiviteler alınamadı: ${resp.statusCode}\n${resp.body}",
+      );
     }
   }
 
