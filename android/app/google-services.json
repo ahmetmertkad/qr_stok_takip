@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "611216511436",
+    "project_id": "siparis-takip-51e5e",
+    "storage_bucket": "siparis-takip-51e5e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:611216511436:android:bb46ad4fa72fa76e128d69",
+        "android_client_info": {
+          "package_name": "com.example.siparis_takip"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCS0IUVc17_t6WLUzQdBStaaW6ecid1mfQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
