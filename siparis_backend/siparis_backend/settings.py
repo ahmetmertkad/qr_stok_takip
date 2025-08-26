@@ -37,15 +37,15 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    'rest_framework_simplejwt',
-    'rest_framework_simplejwt.token_blacklist',
-    'rest_framework',
-    'kullanici',
-    'urun',
-    "notifications",
-    
-]
 
+    "rest_framework",
+    "rest_framework_simplejwt",
+    "rest_framework_simplejwt.token_blacklist",
+
+    "kullanici",
+    "notifications.apps.NotificationsConfig",  # sadece AppConfig
+    "urun.apps.UrunConfig",                   # sadece AppConfig
+]
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",

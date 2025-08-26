@@ -14,3 +14,6 @@ class NotificationsConfig(AppConfig):
         if not firebase_admin._apps:
             cred = credentials.Certificate(str(settings.FIREBASE_CREDENTIALS_FILE))
             firebase_admin.initialize_app(cred)
+
+        # <<< ÖNEMLİ: sinyalleri bağla
+        from . import signals  # noqa: F401
