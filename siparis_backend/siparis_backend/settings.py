@@ -18,7 +18,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
-
+FIREBASE_CREDENTIALS_FILE = BASE_DIR / "firebase-service-account.json"
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = "django-insecure-6ef0a6fzsv%l5tr!o6$_$x&w)axwt1)r-2k)8+)$aj-8^!zbei"
 
