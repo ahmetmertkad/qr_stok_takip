@@ -1,7 +1,9 @@
+// lib/sayfalar/oturum/giris.dart
 import 'package:flutter/material.dart';
 import 'package:siparis_takip/sayfalar/oturum/anasayfa.dart';
 import 'package:siparis_takip/sayfalar/oturum/kayit.dart';
 import 'package:siparis_takip/services/api_service.dart';
+import 'package:siparis_takip/services/notification_service.dart';
 
 class GirisSayfasi extends StatefulWidget {
   const GirisSayfasi({super.key});
@@ -35,36 +37,61 @@ class _GirisSayfasiState extends State<GirisSayfasi> {
       _hataMesaji = null;
     });
 
+    Map<String, dynamic>? result;
+
+    // 1) SADECE GİRİŞ (ayrı try/catch)
     try {
-      final result = await ApiService.loginUser(
+      result = await ApiService.loginUser(
         username: _usernameController.text.trim(),
         password: _passwordController.text,
       );
-
-      if (result['success'] == true && result['access'] != null) {
-        final username =
-            (result['username'] as String?) ?? _usernameController.text.trim();
-        final role = (result['role'] as String?) ?? 'personel';
-
-        if (!mounted) return;
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => AnaSayfa(kullaniciAdi: username, role: role),
-          ),
-        );
-      } else {
+    } catch (_) {
+      if (mounted) {
         setState(() {
-          _hataMesaji =
-              result['message'] ?? "Geçersiz kullanıcı adı veya şifre.";
+          _hataMesaji = "❌ Sunucuya bağlanılamadı (giriş).";
+          _isLoading = false;
         });
       }
-    } catch (_) {
-      setState(() {
-        _hataMesaji = "❌ Sunucuya bağlanılamadı, lütfen tekrar deneyin.";
-      });
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+      return;
+    }
+
+    // 2) GİRİŞ BAŞARILI MI?
+    if (result['success'] == true && result['access'] != null) {
+      final username =
+          (result['username'] as String?) ?? _usernameController.text.trim();
+      final role = (result['role'] as String?) ?? 'personel';
+
+      // 3) FCM’i AYRI TRY/CATCH — Hata olsa bile navigasyonu engelleme
+      try {
+        await NotificationService.I.initAfterLogin(context: context);
+      } catch (e) {
+        debugPrint('initAfterLogin hata: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Bildirim kurulamadı (devam ediliyor).'),
+            ),
+          );
+        }
+      }
+
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => AnaSayfa(kullaniciAdi: username, role: role),
+        ),
+      );
+    } else {
+      if (mounted) {
+        setState(() {
+          _hataMesaji =
+              (result?['message'] as String?) ??
+              "Geçersiz kullanıcı adı veya şifre.";
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -76,7 +103,6 @@ class _GirisSayfasiState extends State<GirisSayfasi> {
 
     return Scaffold(
       backgroundColor: bg1,
-      // ÖNEMLİ: Klavye açıldığında Scaffold'un boyutunu değiştirme
       resizeToAvoidBottomInset: false,
       body: SafeArea(
         child: Stack(
@@ -93,14 +119,10 @@ class _GirisSayfasiState extends State<GirisSayfasi> {
                 ),
               ),
             ),
-
-            // Düzen: Scroll + dinamik bottom padding
+            // Scroll + dinamik bottom padding
             LayoutBuilder(
               builder: (context, constraints) {
-                final bottomInset =
-                    MediaQuery.of(
-                      context,
-                    ).viewInsets.bottom; // klavye yüksekliği
+                final bottomInset = MediaQuery.of(context).viewInsets.bottom;
                 return SingleChildScrollView(
                   keyboardDismissBehavior:
                       ScrollViewKeyboardDismissBehavior.onDrag,
@@ -134,7 +156,6 @@ class _GirisSayfasiState extends State<GirisSayfasi> {
                                       CrossAxisAlignment.stretch,
                                   children: [
                                     const SizedBox(height: 8),
-                                    // Avatar / başlık
                                     Align(
                                       alignment: Alignment.center,
                                       child: Container(
@@ -168,9 +189,7 @@ class _GirisSayfasiState extends State<GirisSayfasi> {
                                       alignment: Alignment.center,
                                       child: Text(
                                         "Hesabınıza giriş yapın",
-                                        style: TextStyle(
-                                          color: Colors.grey.shade700,
-                                        ),
+                                        style: TextStyle(color: Colors.grey),
                                       ),
                                     ),
                                     const SizedBox(height: 24),
@@ -284,7 +303,7 @@ class _GirisSayfasiState extends State<GirisSayfasi> {
                                       ),
                                     ),
 
-                                    const Spacer(), // kartın altını esnek kapatır (boşluklar sabit kalır)
+                                    const Spacer(),
                                   ],
                                 ),
                               ),

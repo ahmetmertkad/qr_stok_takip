@@ -5,7 +5,7 @@ from django.conf import settings
 class Device(models.Model):
     PLATFORM_CHOICES = (('android','Android'), ('ios','iOS'), ('web','Web'))
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='devices')
-    token = models.CharField(max_length=255, unique=True)  # FCM token
+    token = models.CharField(max_length=512, unique=True)  # FCM token (uzun olabilir)
     platform = models.CharField(max_length=10, choices=PLATFORM_CHOICES)
     created_at = models.DateTimeField(auto_now_add=True)
 

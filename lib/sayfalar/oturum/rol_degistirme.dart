@@ -89,8 +89,12 @@ class _RolDegistirmeSayfasiState extends State<RolDegistirmeSayfasi> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Rol Değiştirme"),
+        title: const Text(
+          "Rol Değiştirme",
+          style: TextStyle(color: Colors.white),
+        ),
         backgroundColor: Colors.indigo.shade600,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body:
           yukleniyor

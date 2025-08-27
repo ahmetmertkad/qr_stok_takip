@@ -82,8 +82,9 @@ class _KullaniciAktiviteleriSayfasiState
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(title),
+        title: const Text(title, style: TextStyle(color: Colors.white)),
         backgroundColor: Colors.indigo.shade600,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Container(
         width: double.infinity,

@@ -1,35 +1,43 @@
+// lib/main.dart
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:siparis_takip/sayfalar/oturum/giris.dart';
 
-void main() {
+/// App kapalıyken/arkaplanda gelen FCM mesajlarını işler.
+/// Bu fonksiyon farklı bir isolate'ta çalışır; o yüzden
+/// mutlaka entry-point ve initialize guard ekliyoruz.
+@pragma('vm:entry-point') // <<< ÖNEMLİ
+Future<void> _firebaseBg(RemoteMessage message) async {
+  // Default app yoksa burada başlat (release'de şart)
+  if (Firebase.apps.isEmpty) {
+    await Firebase.initializeApp();
+  }
+  // debug:
+  // print('BG notification: ${message.notification?.title}');
+}
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Uygulama (foreground) için Firebase'i başlat
+  await Firebase.initializeApp();
+
+  // Background mesaj handler'ı bağla (runApp'ten önce olmalı)
+  FirebaseMessaging.onBackgroundMessage(_firebaseBg);
+
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Sipariş Takip',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
       home: const GirisSayfasi(),

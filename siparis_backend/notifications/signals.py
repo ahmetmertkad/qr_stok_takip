@@ -11,10 +11,6 @@ from .services import send_to_tokens
 User = get_user_model()
 
 def _yonetici_queryset():
-    """
-    Öncelik: role='yonetici' (uygulama içi yönetici)
-    Yedek: is_superuser=True (Django superuser)
-    """
     qs = User.objects.filter(is_active=True, role="yonetici")
     if qs.exists():
         return qs
@@ -36,27 +32,30 @@ def notify_admins_on_urun_create(sender, instance: Urun, created: bool, **kwargs
 
     admins = list(_yonetici_queryset())
     if not admins:
-        return  # hedef yoksa sessizce çık
+        print("[notifications] hedef kullanıcı bulunamadı (yonetici/superuser yok)")
+        return
 
-    # DB commit'inden SONRA FCM yollayalım (duplicateları ve rollback sorunlarını önler)
     def _do():
-        # 1) DB bildirimi
+        # DB bildirimi
         Notification.objects.bulk_create([
             Notification(user=u, title=title, body=body, data=data)
             for u in admins
         ], batch_size=1000)
 
-        # 2) FCM push
         tokens = list(
             Device.objects.filter(user__in=admins)
             .values_list("token", flat=True)
             .distinct()
         )
+        print(f"[notifications] admin_sayisi={len(admins)} token_sayisi={len(tokens)}")
+
         if tokens:
             try:
-                send_to_tokens(tokens, title, body, data)
-            except Exception:
-                # Push hatası uygulamayı çökertmesin
-                pass
+                report = send_to_tokens(tokens, title, body, data)
+                print(f"[notifications] FCM report: {report}")
+            except Exception as e:
+                import traceback; traceback.print_exc()
+        else:
+            print("[notifications] gönderilecek token yok")
 
     transaction.on_commit(_do)

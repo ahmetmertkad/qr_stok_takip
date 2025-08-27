@@ -127,9 +127,13 @@ class _UrunOlusturSayfasiState extends State<UrunOlusturSayfasi> {
     return Scaffold(
       backgroundColor: Colors.indigo.shade50,
       appBar: AppBar(
-        title: const Text("Ürün Oluştur"),
+        title: const Text(
+          "Ürün Oluştur",
+          style: TextStyle(color: Colors.white),
+        ),
         backgroundColor: Colors.indigo,
         elevation: 2,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Center(
         child: SingleChildScrollView(
@@ -172,7 +176,10 @@ class _UrunOlusturSayfasiState extends State<UrunOlusturSayfasi> {
                                     ),
                                   )
                                   : const Icon(Icons.check),
-                          label: const Text("Kaydet"),
+                          label: const Text(
+                            "Kaydet",
+                            style: TextStyle(color: Colors.white),
+                          ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.indigo,
                             padding: const EdgeInsets.symmetric(vertical: 14),

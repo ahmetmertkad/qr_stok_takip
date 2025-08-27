@@ -86,7 +86,10 @@ class _UrunDetayliListeSayfasiState extends State<UrunDetayliListeSayfasi> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Ürünler • Detaylı Liste"),
+        title: const Text(
+          "Ürünler • Detaylı Liste",
+          style: TextStyle(color: Colors.white),
+        ),
         backgroundColor: Colors.indigo.shade600,
         actions: [
           IconButton(
@@ -95,6 +98,7 @@ class _UrunDetayliListeSayfasiState extends State<UrunDetayliListeSayfasi> {
             onPressed: chipsDisabled ? null : () => _durumFiltreSheet(context),
           ),
         ],
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Container(
         decoration: BoxDecoration(

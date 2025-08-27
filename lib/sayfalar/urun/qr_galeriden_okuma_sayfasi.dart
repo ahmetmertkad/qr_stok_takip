@@ -76,8 +76,12 @@ class _QRGaleridenOkumaSayfasiState extends State<QRGaleridenOkumaSayfasi> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("QR Kodlu Resimden Oku"),
+        title: const Text(
+          "QR Kodlu Resimden Oku",
+          style: TextStyle(color: Colors.white),
+        ),
         backgroundColor: Colors.indigo.shade600,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Container(
         width: double.infinity,

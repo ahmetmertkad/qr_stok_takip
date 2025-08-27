@@ -77,6 +77,7 @@ class _UrunTanimlamaSayfasiState extends State<UrunTanimlamaSayfasi> {
       appBar: AppBar(
         title: const Text("Ürün Tanımlama"),
         backgroundColor: Colors.indigo.shade600,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Container(
         width: double.infinity,

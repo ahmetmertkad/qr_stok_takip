@@ -68,8 +68,12 @@ class _HesapDurumState extends State<HesapDurum> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Hesap Durumları"),
+        title: const Text(
+          "Hesap Durumları",
+          style: const TextStyle(color: Colors.white),
+        ),
         backgroundColor: Colors.indigo.shade600,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body:
           yukleniyor

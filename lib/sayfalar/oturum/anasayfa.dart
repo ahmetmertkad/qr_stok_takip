@@ -25,7 +25,10 @@ class AnaSayfa extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Hoş Geldin, $formattedUsername"),
+        title: Text(
+          "Hoş Geldin, $formattedUsername",
+          style: const TextStyle(color: Colors.white),
+        ),
         backgroundColor: Colors.indigo.shade600,
         actions: [
           if (role == "yonetici") ...[
@@ -212,6 +215,19 @@ class AnaSayfa extends StatelessWidget {
 
                       // ---------- DEPO GÖREVLİSİ ----------
                       if (role == "depo_gorevlisi") ...[
+                        const SizedBox(height: 6),
+                        _buildAnaButon(
+                          context,
+                          Icons.qr_code_scanner,
+                          "QR Kod Oku",
+                          () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const QRGaleridenOkumaSayfasi(),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
                         _buildAnaButon(
                           context,
                           Icons.search,

@@ -212,11 +212,10 @@ class ApiService {
   /// Cihazın FCM token’ını backend’e kaydeder.
   /// Backend: POST /api/fcm/register/  ->  {token, platform}
   static Future<void> registerFcmToken(String fcmToken) async {
-    final resp = await post('/fcm/register/', {
+    final resp = await post('/devices/', {
       'token': fcmToken,
       'platform': Platform.isIOS ? 'ios' : 'android',
     });
-
     if (resp.statusCode < 200 || resp.statusCode >= 300) {
       throw Exception(
         'FCM token kaydedilemedi: ${resp.statusCode} ${resp.body}',
@@ -224,18 +223,9 @@ class ApiService {
     }
   }
 
-  /// (Opsiyonel) Çıkışta token’ı backend’den düşmek için.
-  /// Backend: POST /api/fcm/unregister/  ->  {token}
+  // (Opsiyonel) unregister şimdilik NO-OP kalabilir
   static Future<void> unregisterFcmToken(String fcmToken) async {
-    try {
-      final resp = await post('/fcm/unregister/', {'token': fcmToken});
-      if (resp.statusCode < 200 || resp.statusCode >= 300) {
-        // Sessiz geçmek istersen burayı yutabilirsin
-        // throw Exception('FCM token silinemedi: ${resp.statusCode}');
-      }
-    } catch (_) {
-      // yut
-    }
+    return;
   }
 
   // -------------------- yardımcılar --------------------

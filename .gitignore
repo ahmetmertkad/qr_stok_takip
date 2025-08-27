@@ -45,3 +45,4 @@ app.*.map.json
 /android/app/release
 siparis_backend/firebase-service-account.json
 *.sqlite3
+siparis_backend/qr_kodlari/**/*.png

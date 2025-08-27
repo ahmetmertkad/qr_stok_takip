@@ -178,8 +178,9 @@ class _UrunAramaSayfasiState extends State<UrunAramaSayfasi> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Ürün Arama"),
+        title: const Text("Ürün Arama", style: TextStyle(color: Colors.white)),
         backgroundColor: Colors.indigo.shade600,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Container(
         decoration: BoxDecoration(
