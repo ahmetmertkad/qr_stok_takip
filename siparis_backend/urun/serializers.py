@@ -97,3 +97,42 @@ class UrunDurumGecmisiSerializer(serializers.ModelSerializer):
 
     def get_yapan_username(self, obj):
         return obj.yapan.username if obj.yapan else None
+
+
+
+# app/serializers.py
+from rest_framework import serializers
+
+
+class SonDegisimSerializer(serializers.Serializer):
+    urun = serializers.CharField()
+    onceki = serializers.CharField(allow_null=True)
+    yeni = serializers.CharField()
+    yapan = serializers.CharField()
+    tarih = serializers.DateTimeField()
+
+
+class TopKullaniciSerializer(serializers.Serializer):
+    kullanici = serializers.CharField()
+    adet = serializers.IntegerField()
+
+
+class KritikStokSerializer(serializers.Serializer):
+    ad = serializers.CharField()
+    model_no = serializers.CharField()
+    adet = serializers.IntegerField()
+
+
+class GunlukEklenenSerializer(serializers.Serializer):
+    tarih = serializers.DateField()     # "YYYY-MM-DD"
+    adet = serializers.IntegerField()
+
+
+class DashboardSerializer(serializers.Serializer):
+    toplam_urun = serializers.IntegerField()
+    bugun_eklenen = serializers.IntegerField()
+    durum_sayilari = serializers.DictField(child=serializers.IntegerField())
+    son_7_gun_eklenen = GunlukEklenenSerializer(many=True)
+    son_degisimler = SonDegisimSerializer(many=True)
+    top_kullanicilar = TopKullaniciSerializer(many=True)
+    kritik_stok = KritikStokSerializer(many=True)

@@ -1,16 +1,19 @@
 # views.py
+from datetime import timedelta
+from arrow import now
 from django.db import transaction
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import Prefetch, Count  # Count burada
+from django.db.models.functions import TruncDate
 
 from .permissions import AnyRole
 from django.contrib.auth import get_user_model
 User = get_user_model()
 
 from .models import Urun, UrunDurumGecmisi
-from .serializers import UrunSerializer, UrunDurumGecmisiSerializer
+from .serializers import DashboardSerializer, UrunSerializer, UrunDurumGecmisiSerializer
 
 
 class UrunViewSet(viewsets.ModelViewSet):
@@ -249,3 +252,97 @@ class UrunDurumGecmisiViewSet(viewsets.ModelViewSet):
         ser = self.get_serializer(qs, many=True)
         return Response(ser.data, status=200)
 
+
+
+
+
+class IstatistikViewSet(viewsets.ViewSet):
+    # Default permission
+    permission_classes = [AnyRole("yonetici")]
+
+    @action(
+        detail=False,
+        methods=['get'],
+        url_path='dashboard',
+        permission_classes=[AnyRole("yonetici")]  # 👈 sadece yönetici
+    )
+    def dashboard(self, request):
+        today = now().date()
+        week_ago = today - timedelta(days=6)
+
+        # 1) Toplam ürün
+        toplam_urun = Urun.objects.count()
+
+        # 2) Durum dağılımı
+        durum_qs = (
+            Urun.objects.values('durum')
+            .annotate(adet=Count('id'))
+            .order_by()
+        )
+        durum_sayilari = {r['durum']: r['adet'] for r in durum_qs}
+
+        # 3) Bugün eklenen (ilk log: onceki=None, yeni='stokta')
+        bugun_eklenen = UrunDurumGecmisi.objects.filter(
+            onceki_durum__isnull=True,
+            yeni_durum='stokta',
+            tarih__date=today
+        ).count()
+
+        # 4) Son 7 gün eklenen
+        son7_qs = (
+            UrunDurumGecmisi.objects
+            .filter(onceki_durum__isnull=True, yeni_durum='stokta', tarih__date__gte=week_ago)
+            .annotate(d=TruncDate('tarih'))
+            .values('d').annotate(adet=Count('id')).order_by('d')
+        )
+        son_7_gun_eklenen = [{"tarih": r["d"], "adet": r["adet"]} for r in son7_qs]
+
+        # 5) Son 10 değişiklik
+        degisim_qs = (
+            UrunDurumGecmisi.objects
+            .select_related('urun', 'yapan')
+            .order_by('-tarih')[:10]
+        )
+        son_degisimler = [{
+            "urun": f"{x.urun.ad}-{x.urun.model_no}",
+            "onceki": x.onceki_durum,
+            "yeni": x.yeni_durum,
+            "yapan": (x.yapan and x.yapan.username) or "-",
+            "tarih": x.tarih,
+        } for x in degisim_qs]
+
+        # 6) En çok işlem yapan kullanıcılar (30 gün)
+        month_ago = today - timedelta(days=30)
+        top_users_qs = (
+            UrunDurumGecmisi.objects
+            .filter(tarih__date__gte=month_ago, yapan__isnull=False)
+            .values('yapan__username')
+            .annotate(adet=Count('id')).order_by('-adet')[:5]
+        )
+        top_kullanicilar = [
+            {"kullanici": r['yapan__username'], "adet": r['adet']}
+            for r in top_users_qs
+        ]
+
+        # 7) Kritik stok (<5)
+        kritik_qs = (
+            Urun.objects.values('ad', 'model_no')
+            .annotate(cnt=Count('id'))
+            .filter(cnt__lt=5, cnt__gt=0)
+            .order_by('cnt')[:10]
+        )
+        kritik_stok = [
+            {"ad": r["ad"], "model_no": r["model_no"], "adet": r["cnt"]}
+            for r in kritik_qs
+        ]
+
+        payload = {
+            "toplam_urun": toplam_urun,
+            "bugun_eklenen": bugun_eklenen,
+            "durum_sayilari": durum_sayilari,
+            "son_7_gun_eklenen": son_7_gun_eklenen,
+            "son_degisimler": son_degisimler,
+            "top_kullanicilar": top_kullanicilar,
+            "kritik_stok": kritik_stok,
+        }
+        return Response(DashboardSerializer(payload).data)
