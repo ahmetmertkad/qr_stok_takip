@@ -92,6 +92,43 @@ class ApiService {
     });
   }
 
+  // 🔹 Bu metod eksikti
+  // 🔧 DOĞRU SÜRÜM
+  static Future<int> fetchUnreadCount() async {
+    // Hazır get() sarmalayıcını kullan; otomatik header + refresh yapıyor
+    final resp = await get('/notifications/unread-count/');
+    if (resp.statusCode == 200) {
+      final body = json.decode(resp.body) as Map<String, dynamic>;
+      return (body['unread'] as num).toInt();
+    } else {
+      throw Exception('Unread count error: ${resp.statusCode} ${resp.body}');
+    }
+  }
+
+  static Future<List<dynamic>> fetchNotifications({bool? isRead}) async {
+    final query = <String, String>{};
+    if (isRead != null) query['is_read'] = isRead ? 'true' : 'false';
+
+    final resp = await get('/notifications/', query: query);
+    if (resp.statusCode == 200) {
+      final body = json.decode(resp.body);
+      return (body is Map && body.containsKey('results'))
+          ? (body['results'] as List)
+          : (body as List);
+    }
+    throw Exception('List error: ${resp.statusCode} ${resp.body}');
+  }
+
+  static Future<bool> markNotificationRead(int id) async {
+    final resp = await patch('/notifications/$id/mark-read/', {});
+    return resp.statusCode == 200;
+  }
+
+  static Future<bool> markAllNotificationsRead() async {
+    final resp = await post('/notifications/mark-all-read/', {});
+    return resp.statusCode == 200;
+  }
+
   // -------------------- Hazır uç noktalar (örnekler) --------------------
 
   /// Giriş

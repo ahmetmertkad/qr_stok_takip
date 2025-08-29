@@ -1,8 +1,19 @@
+// lib/services/notification_service.dart
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:siparis_takip/services/api_service.dart';
+
+import 'package:siparis_takip/services/api_service.dart'; // fetchUnreadCount(), registerFcmToken()
+
+/// AppBar zil rozetinde kullanacağın global sayaç
+final ValueNotifier<int> unreadCounter = ValueNotifier<int>(0);
+
+/// Uygulama içi “bildirim geldi” olaylarını dinlemek istersen
+final StreamController<Map<String, dynamic>> notificationStream =
+    StreamController<Map<String, dynamic>>.broadcast();
 
 class NotificationService {
   NotificationService._();
@@ -14,7 +25,7 @@ class NotificationService {
 
   bool _initialized = false;
 
-  // Android kanal (sabit kalsın)
+  // Android kanal (sabit)
   static const AndroidNotificationChannel _androidChannel =
       AndroidNotificationChannel(
         'high_importance_channel',
@@ -23,8 +34,9 @@ class NotificationService {
         importance: Importance.max,
       );
 
+  /// Login tamamlandıktan sonra çağır (token kaydı ve dinleyiciler burada kurulur)
   Future<void> initAfterLogin({BuildContext? context}) async {
-    // Firebase başlatılmış mı emin ol
+    // Firebase init
     try {
       Firebase.app();
     } catch (_) {
@@ -39,78 +51,73 @@ class NotificationService {
     );
     debugPrint('FCM permission: ${perm.authorizationStatus}');
 
-    // iOS ön plan davranışı (Android’de etkisiz)
+    // iOS foreground davranışı (Android’de etkisiz)
     await _fm.setForegroundNotificationPresentationOptions(
       alert: true,
       badge: true,
       sound: true,
     );
 
-    // Local Notifications init (DEFAULT ICON: @mipmap/ic_launcher)
+    // Local Notifications init
     await _initLocalNotifications();
 
     // --- TOKEN KAYIT ---
-    String? token = await _fm.getToken();
+    final token = await _fm.getToken();
     debugPrint('FCM TOKEN (ilk): $token');
     if (token != null) {
-      try {
-        await ApiService.registerFcmToken(token);
-        debugPrint('FCM token /api/devices/ ile kaydedildi.');
-      } catch (e) {
-        final msg = e.toString();
-        // token zaten kayıtlıysa akışı bozma
-        if (msg.contains('already exists')) {
-          debugPrint('FCM token zaten kayıtlı, devam ediliyor.');
-        } else {
-          debugPrint('devices POST error: $e');
-        }
-      }
+      await _safeRegisterToken(token);
     }
 
-    // Listener'ları tek sefer kur
-    if (!_initialized) {
-      _initialized = true;
+    // Login sonrası unread sayıyı çek (zil rozeti)
+    await _refreshUnread();
 
-      _fm.onTokenRefresh.listen((newToken) async {
-        debugPrint('FCM TOKEN REFRESH: $newToken');
-        try {
-          await ApiService.registerFcmToken(newToken);
-        } catch (e) {
-          if (!e.toString().contains('already exists')) {
-            debugPrint('Token refresh kaydetme hatası: $e');
-          }
-        }
-      });
+    // Listener’ları tek sefer kur
+    if (_initialized) return;
+    _initialized = true;
 
-      // ÖN PLAN: local notification ile göster
-      FirebaseMessaging.onMessage.listen((RemoteMessage m) async {
-        final title = m.notification?.title ?? 'Bildirim';
-        final body = m.notification?.body ?? '';
-        await _showLocal(title: title, body: body, payload: m.data);
-      });
+    // Token yenilenirse kaydet
+    _fm.onTokenRefresh.listen((newToken) async {
+      debugPrint('FCM TOKEN REFRESH: $newToken');
+      await _safeRegisterToken(newToken);
+    });
 
-      // ARKA PLANDA bildirime tıklama
-      FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage m) {
-        _handleNavigation(m.data);
-      });
+    // ÖN PLAN: local notification + sayaç artır + event yayınla
+    FirebaseMessaging.onMessage.listen((RemoteMessage m) async {
+      final title = m.notification?.title ?? 'Bildirim';
+      final body = m.notification?.body ?? '';
+      await _showLocal(title: title, body: body, payload: m.data);
 
-      // Uygulama tamamen kapalıyken bildirime tıklayıp açma
-      final initial = await _fm.getInitialMessage();
-      if (initial != null) {
-        _handleNavigation(initial.data);
-      }
+      // sayaç +1 (kutuda okundu yapınca sen azaltacaksın)
+      unreadCounter.value = unreadCounter.value + 1;
+
+      // İstersen ekranlarda dinle
+      notificationStream.add({'title': title, 'body': body, 'data': m.data});
+    });
+
+    // ARKA PLAN: bildirime tıklayıp app’e gelince
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage m) {
+      _handleNavigation(m.data);
+    });
+
+    // APP KAPALIYKEN: bildirime tıklayıp açıldıysa
+    final initial = await _fm.getInitialMessage();
+    if (initial != null) {
+      _handleNavigation(initial.data);
     }
   }
 
+  /// Dışarıdan da çağrılabilsin (örn. bildirim ekranından geri dönünce)
+  Future<void> refreshUnreadPublic() => _refreshUnread();
+
+  // ------------------ PRIVATE ------------------
+
   Future<void> _initLocalNotifications() async {
-    // Android kanal oluştur
     await _flnp
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
         >()
         ?.createNotificationChannel(_androidChannel);
 
-    // DEFAULT ICON: uygulama launcher iconu
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosInit = DarwinInitializationSettings();
 
@@ -122,7 +129,8 @@ class NotificationService {
     await _flnp.initialize(
       initSettings,
       onDidReceiveNotificationResponse: (resp) {
-        // İstersen burada payload’a göre sayfa yönlendirme yapabilirsin.
+        // İstersen payload’a göre sayfa yönlendirme yap.
+        // _handleNavigation(parsePayload(resp.payload));
       },
     );
   }
@@ -132,15 +140,18 @@ class NotificationService {
     required String body,
     Map<String, dynamic>? payload,
   }) async {
-    // icon belirtmedik -> initialization’daki default (@mipmap/ic_launcher) kullanılır
     final androidDetails = AndroidNotificationDetails(
       _androidChannel.id,
       _androidChannel.name,
       channelDescription: _androidChannel.description,
       importance: Importance.max,
       priority: Priority.high,
+      playSound: true,
     );
-    const iosDetails = DarwinNotificationDetails();
+    const iosDetails = DarwinNotificationDetails(
+      presentSound: true,
+      presentAlert: true,
+    );
 
     final details = NotificationDetails(
       android: androidDetails,
@@ -152,11 +163,37 @@ class NotificationService {
       title,
       body,
       details,
+      payload: payload == null ? null : payload.toString(),
     );
+  }
+
+  Future<void> _refreshUnread() async {
+    try {
+      final count =
+          await ApiService.fetchUnreadCount(); // <-- DRF: /notifications/unread-count/
+      unreadCounter.value = count;
+    } catch (e) {
+      debugPrint('unread-count hatası: $e');
+    }
+  }
+
+  Future<void> _safeRegisterToken(String token) async {
+    try {
+      await ApiService.registerFcmToken(token); // <-- DRF: /devices/
+      debugPrint('FCM token kaydedildi.');
+    } catch (e) {
+      final msg = e.toString();
+      // unique token zaten varsa akışı bozma
+      if (msg.contains('already exists')) {
+        debugPrint('FCM token zaten kayıtlı.');
+      } else {
+        debugPrint('FCM token kayıt hatası: $e');
+      }
+    }
   }
 
   void _handleNavigation(Map<String, dynamic> data) {
     // Örn:
-    // if (data['type'] == 'urun_ekleme') { ... sayfaya git ... }
+    // if (data['type'] == 'urun_ekleme') { // ilgili sayfaya git }
   }
 }

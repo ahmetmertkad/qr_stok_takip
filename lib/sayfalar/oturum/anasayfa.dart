@@ -1,4 +1,3 @@
-// lib/sayfalar/ana_sayfa.dart
 import 'package:flutter/material.dart';
 import 'package:siparis_takip/sayfalar/oturum/giris.dart';
 import 'package:siparis_takip/sayfalar/oturum/rol_degistirme.dart';
@@ -8,7 +7,14 @@ import 'package:siparis_takip/sayfalar/urun/urun_olustur.dart';
 import 'package:siparis_takip/sayfalar/urun/urun_arama_sayfasi.dart';
 import 'package:siparis_takip/sayfalar/urun/qr_galeriden_okuma_sayfasi.dart';
 import 'package:siparis_takip/sayfalar/urun/urun_detayli_liste.dart';
+
 import 'package:siparis_takip/services/token_manager.dart';
+import 'package:siparis_takip/services/notification_service.dart'
+    show NotificationService, unreadCounter;
+import 'package:siparis_takip/sayfalar/bildirim/notification_box_page.dart';
+
+// badges paketi (pubspec.yaml: badges: ^3.1.2)
+import 'package:badges/badges.dart' as badges;
 
 class AnaSayfa extends StatelessWidget {
   final String kullaniciAdi;
@@ -33,14 +39,66 @@ class AnaSayfa extends StatelessWidget {
         actions: [
           if (role == "yonetici") ...[
             IconButton(
-              tooltip: "Kullanıcılar",
-              icon: const Icon(Icons.people, color: Colors.white),
-              onPressed: () {
-                Navigator.push(
+              onPressed: () async {
+                await Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const HesapDurum()),
+                  MaterialPageRoute(
+                    builder: (_) => const NotificationBoxPage(),
+                  ),
                 );
+                await NotificationService.I.refreshUnreadPublic();
               },
+              icon: ValueListenableBuilder<int>(
+                valueListenable: unreadCounter,
+                builder: (_, c, __) {
+                  return Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      // 🟡 Zil sarı
+                      const Icon(
+                        Icons.notifications,
+                        size: 36,
+                        color: Colors.amber, // <-- zil rengi
+                      ),
+
+                      // 🔴 Kırmızı rozet (bildirim adedi)
+                      if (c > 0)
+                        Positioned(
+                          right: -4,
+                          top: -4,
+                          child: Container(
+                            constraints: const BoxConstraints(
+                              minWidth: 16,
+                              minHeight: 16,
+                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.red, // <-- rozet rengi
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color:
+                                    Colors
+                                        .white, // AppBar üzerinde temiz dursun
+                                width: 1.5,
+                              ),
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              '$c',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color:
+                                    Colors.white, // kırmızı üstünde beyaz yazı
+                                height: 1.0,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              ),
             ),
           ],
           IconButton(
